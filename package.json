@@ -1,0 +1,34 @@
+{
+  "name": "capital-marketplace-mvp",
+  "version": "1.0.0",
+  "description": "Production-ready capital marketplace platform MVP",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "build": "npm run build --workspace=apps/backend && npm run build --workspace=apps/frontend",
+    "test": "npm run test --workspace=apps/backend",
+    "lint": "npm run lint --workspace=apps/backend && npm run lint --workspace=apps/frontend",
+    "type-check": "npm run type-check --workspace=apps/backend && npm run type-check --workspace=apps/frontend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "setup": "npm install && npm run db:generate && npm run db:push",
+    "db:generate": "npm run db:generate --workspace=apps/backend",
+    "db:push": "npm run db:push --workspace=apps/backend",
+    "db:migrate": "npm run db:migrate --workspace=apps/backend"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

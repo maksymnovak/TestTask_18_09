@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./dev.db
+      - PORT=3001
+      - HOST=0.0.0.0
+      - CORS_ORIGIN=http://localhost:3000
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - MAX_FILE_SIZE=10485760
+      - UPLOAD_DIR=./uploads
+      - LOG_LEVEL=info
+    volumes:
+      - ./apps/backend:/app
+      - backend_uploads:/app/uploads
+      - backend_db:/app/prisma
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - capital-marketplace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Next.js Service
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+      - NEXT_PUBLIC_APP_ENV=development
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+    depends_on:
+      - backend
+    networks:
+      - capital-marketplace
+
+  # Database backup service (optional)
+  db-backup:
+    image: alpine:latest
+    volumes:
+      - backend_db:/backup/source
+      - ./backups:/backup/destination
+    command: |
+      sh -c "
+        mkdir -p /backup/destination
+        while true; do
+          if [ -f /backup/source/dev.db ]; then
+            cp /backup/source/dev.db /backup/destination/dev-backup-$$(date +%Y%m%d-%H%M%S).db
+            echo 'Database backup created at $$(date)'
+            # Keep only last 7 backups
+            ls -t /backup/destination/dev-backup-*.db | tail -n +8 | xargs -r rm
+          fi
+          sleep 3600  # Backup every hour
+        done
+      "
+    depends_on:
+      - backend
+    networks:
+      - capital-marketplace
+
+volumes:
+  backend_uploads:
+    driver: local
+  backend_db:
+    driver: local
+
+networks:
+  capital-marketplace:
+    driver: bridge

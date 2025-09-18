@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  companies     Company[]
+  notifications Notification[]
+  messages      Message[]
+
+  @@map("users")
+}
+
+model Company {
+  id               String  @id @default(uuid())
+  userId           String
+  name             String
+  sector           String
+  targetRaise      Float
+  revenue          Float   @default(0)
+  kycVerified      Boolean @default(false)
+  financialsLinked Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@map("companies")
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String
+  mimeType  String
+  size      Int
+  path      String
+  category  String?  // e.g., 'pitch-deck', 'financial-statements', etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String    // 'info', 'success', 'warning', 'error'
+  title     String?
+  message   String
+  data      String?   // JSON string for additional data
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  userId     String
+  content    String
+  isFromUser Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// Audit log for security and compliance
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String   // e.g., 'company_created', 'document_uploaded', 'kyc_verified'
+  resource  String?  // e.g., 'Company:123', 'Document:456'
+  metadata  String?  // JSON string with additional context
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
